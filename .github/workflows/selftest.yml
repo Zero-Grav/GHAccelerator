@@ -1,0 +1,77 @@
+name: selftest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.11']
+        include:
+          - os: ubuntu-latest
+            python: '3.8'
+          - os: ubuntu-latest
+            python: '3.10'
+          - os: ubuntu-latest
+            python: '3.14'
+    env:
+      PYTHONPATH: src
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Environment probe
+        run: python -c "import sys, platform; print(platform.platform()); print(sys.version)"
+
+      - name: CLI entry
+        run: python -m ghacc --version
+
+      - name: Selftest (10 checks + 4 reverse assertions)
+        run: python scripts/selftest.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Status JSON
+        run: python -m ghacc --status
+
+      - name: Collect selftest evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p selftest-evidence
+          python - <<'PY'
+          import pathlib, shutil
+          src = pathlib.Path.home() / '.ghacc' / 'logs'
+          out = pathlib.Path('selftest-evidence')
+          out.mkdir(exist_ok=True)
+          if src.exists():
+              for p in src.glob('selftest_*.json'):
+                  shutil.copy2(p, out / p.name)
+          (out / 'ci-env.txt').write_text(
+              'os=%s py=%s\n' % (__import__('platform').platform(), __import__('sys').version),
+              encoding='utf-8')
+          PY
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-${{ matrix.os }}-py${{ matrix.python }}
+          path: selftest-evidence/
+          if-no-files-found: warn

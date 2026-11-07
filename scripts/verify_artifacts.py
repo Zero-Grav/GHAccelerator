@@ -34,6 +34,9 @@ SOURCE_REQUIRED = [
     "src/ghacc/ui/tkinter_ui.py",
     "scripts/selftest.py", "scripts/verify_artifacts.py",
     "scripts/build_windows.bat", "scripts/app.spec", "scripts/app-onefile.spec",
+    "scripts/sign_windows.bat",
+    ".github/workflows/selftest.yml", ".github/workflows/sign-release.yml",
+    "docs/DESIGN.md", "docs/RELEASE.md",
     "tests/__init__.py", "tests/test_config.py", "tests/test_resolver.py",
     "tests/test_proxy.py",
 ]
