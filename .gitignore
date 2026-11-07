@@ -1,0 +1,28 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- Local build outputs (rebuild with scripts/build_windows.bat) ----
+build/
+dist/
+*.spec.bak
+
+# ---- Runtime artifacts / evidence (generated locally, not committed) ----
+logs/
+*.log
+diagnose.log*
+selftest_*.json
+*.sha256
+*.zip
+
+# ---- Editor / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- Workspace tooling data ----
+.workbuddy/

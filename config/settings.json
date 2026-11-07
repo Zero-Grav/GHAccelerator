@@ -1,0 +1,18 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 18792,
+  "mode": "proxy",
+  "set_system_proxy": true,
+  "probe_timeout_ms": 1200,
+  "probe_workers": 12,
+  "probe_tls_verify": true,
+  "connect_timeout_s": 8.0,
+  "relay_timeout_s": 0.0,
+  "cache_ttl_s": 600,
+  "refresh_interval_s": 0,
+  "fallback": "direct",
+  "log_level": "INFO",
+  "log_to_file": true,
+  "log_max_lines": 2000,
+  "system_proxy_bypass": "localhost;127.*;10.*;192.168.*;<local>"
+}

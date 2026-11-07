@@ -1,0 +1,7 @@
+# GHAccelerator 运行期依赖：无（仅 Python >= 3.8 标准库）
+#
+# 源码形态直接运行，不需要 pip install。
+# 若需要打成 Windows 便携目录包，构建机另行安装：
+#   pyinstaller==6.11.1     （Win10/11 目标）
+#   pyinstaller==5.13.2     （Win7 目标，需 Python 3.8.10 独立构建环境）
+# 构建脚本见 scripts/build_windows.bat，构建依赖不进入运行环境。

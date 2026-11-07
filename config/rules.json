@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "note": "内置 IP 为 GitHub 官方公开网段的常用地址示例；失效项会被 TLS 校验自动淘汰，可用 --refresh-ips 从 api.github.com/meta 更新。非白名单域名一律原样直连。",
+  "domains": [
+    { "host": "github.com", "enabled": true, "pool": "github_web" },
+    { "host": "www.github.com", "enabled": true, "pool": "github_web" },
+    { "host": "api.github.com", "enabled": true, "pool": "github_api" },
+    { "host": "gist.github.com", "enabled": true, "pool": "github_web" },
+    { "host": "codeload.github.com", "enabled": true, "pool": "github_web" },
+    { "host": "raw.githubusercontent.com", "enabled": true, "pool": "github_cdn" },
+    { "host": "avatars.githubusercontent.com", "enabled": true, "pool": "github_cdn" },
+    { "host": "*.githubusercontent.com", "enabled": true, "pool": "github_cdn" },
+    { "host": "github.io", "enabled": true, "pool": "github_cdn" },
+    { "host": "*.github.io", "enabled": true, "pool": "github_cdn" },
+    { "host": "objects.githubusercontent.com", "enabled": false, "pool": "github_cdn", "note": "对象存储 IP 变化频繁，默认关闭" },
+    { "host": "github-releases.githubusercontent.com", "enabled": false, "pool": "github_cdn", "note": "同上" }
+  ],
+  "ip_pools": {
+    "github_web": [
+      "140.82.112.3", "140.82.113.3", "140.82.114.3", "140.82.116.3",
+      "140.82.121.3", "20.205.243.166", "20.27.177.113", "20.200.245.247"
+    ],
+    "github_api": [
+      "140.82.112.5", "140.82.113.5", "140.82.114.5", "20.205.243.168"
+    ],
+    "github_cdn": [
+      "185.199.108.133", "185.199.109.133", "185.199.110.133",
+      "185.199.111.133", "185.199.108.153", "185.199.109.153"
+    ]
+  },
+  "fallback": "direct"
+}
