@@ -6,6 +6,8 @@
   "probe_timeout_ms": 1200,
   "probe_workers": 12,
   "probe_tls_verify": true,
+  "probe_http_verify": true,
+  "probe_http_timeout_ms": 4000,
   "connect_timeout_s": 8.0,
   "relay_timeout_s": 0.0,
   "cache_ttl_s": 600,

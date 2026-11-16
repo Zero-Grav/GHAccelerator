@@ -202,7 +202,8 @@ def run_selftest(base_dir: Optional[Path] = None, quick: bool = False) -> Tuple[
     temp_cfg = Config(
         settings=dict(Config.load(base_dir).settings, **{
             "listen_host": "127.0.0.1", "listen_port": proxy_port,
-            "probe_tls_verify": False, "probe_timeout_ms": 400,
+            "probe_tls_verify": False, "probe_http_verify": False,
+            "probe_timeout_ms": 400,
             "probe_workers": 2, "connect_timeout_s": 2.0,
             "set_system_proxy": False, "mode": "proxy", "log_to_file": False,
         }),
@@ -367,6 +368,46 @@ def run_selftest(base_dir: Optional[Path] = None, quick: bool = False) -> Tuple[
                 "user_content_preserved": "127.0.0.1 localhost" in restored}
 
     check("hosts_managed_block_rollback", _hosts)
+
+    # ---------------------------------------------------------------
+    # 5b. T6 防回归：能完成 TLS 握手、但 HTTP 层异常的节点必须被淘汰。
+    #     表驱动纯函数断言，不依赖公网；同时验证 301/404/415 不被误杀。
+    # ---------------------------------------------------------------
+    def _r6():
+        from .prober import check_http_response
+        from .ip_pool import is_official_ip
+
+        cases = [
+            ("normal-200", 200, b"<html>github</html>", True),
+            ("redirect-301", 301, b"", True),
+            ("missing-path-404", 404, b"Not Found", True),
+            ("api-root-415", 415, b'{"message":"Requires accept header"}', True),
+            ("risk-whoa-there", 200,
+             b"Whoa there! You have sent an invalid request. "
+             b"Please do not send this request again.", False),
+            ("risk-rate-limit", 200, b"rate limit exceeded", False),
+            ("throttled-429", 429, b"too many requests", False),
+            ("forbidden-403", 403, b"", False),
+            ("server-error-503", 503, b"", False),
+            ("timeout-no-status-line", None, b"", False),
+        ]
+        mismatches = []
+        for name, status, body, expected in cases:
+            got, _reason = check_http_response(status, body)
+            if got != expected:
+                mismatches.append("%s expected=%s got=%s" % (name, expected, got))
+
+        # 半死 IP 140.82.113.10 确实落在官方段内 —— 网段校验淘汰不了它，
+        # 只有应用层断言能淘汰。这条断言把这个边界钉死。
+        in_range = is_official_ip("140.82.113.10", ["140.82.112.0/20"])
+        outside = is_official_ip("1.2.3.4", ["140.82.112.0/20"])
+        passed = (not mismatches) and in_range and (not outside)
+        report["reverse_assertions"]["R6_half_dead_ip_rejected"] = passed
+        return {"pass": passed, "cases": len(cases), "mismatches": mismatches,
+                "cidr_validation": {"half_dead_ip_in_official_range": in_range,
+                                   "non_official_ip_rejected": not outside}}
+
+    check("R6_half_dead_ip_rejected", _r6)
 
     # ---------------------------------------------------------------
     # 6. 系统代理后端可用性（真实读取，不写入）

@@ -1,6 +1,8 @@
 # GHAccelerator
 
-> GitHub 访问加速 · v1.0.0 · MIT · [Releases](https://github.com/Zero-Grav/GHAccelerator/releases)
+> GitHub 访问加速 · v1.0.1 · MIT · [Releases](https://github.com/Zero-Grav/GHAccelerator/releases/latest)
+
+> **v1.0.1 修复（T6）**：优选探测从「TCP + TLS 握手」推进到「真实 HTTP 请求」，能淘汰只握手不应答的半死 IP 与 GitHub 风控页节点；`--refresh-ips` 不再把官方 CIDR 机械展开成候选地址。详见 [docs/DESIGN.md](docs/DESIGN.md) 的 T6 记录。
 
 [![selftest](https://github.com/Zero-Grav/GHAccelerator/actions/workflows/selftest.yml/badge.svg)](https://github.com/Zero-Grav/GHAccelerator/actions/workflows/selftest.yml)
 
@@ -60,7 +62,8 @@ GUI 的「目标网址与规则」「设置」两个标签页可直接编辑并�
 |---|---|
 | 一键启停 | 6 态状态机；开启前快照系统代理，关闭时**精确恢复**；异常退出后启动自愈 + `--restore` |
 | 状态反馈 | 4 色状态灯、降级原因、计数器与优选结果表、常驻引擎标识、`--status` JSON 导出 |
-| 失败回退 | TLS 校验失败 → TCP-only 重测 → 系统 DNS 直连 → DEGRADED → ERROR 全撤回；DNS 解析带 1.5s 硬超时 |
+| 优选健康断言 | 真实 `GET /` 验证状态码与风控页，淘汰「能握手不应答」的半死节点；官方 CIDR 不再展开成候选地址 |
+| 失败回退 | HTTP 断言淘汰坏 IP → 证书校验失败降级重测（应用层断言仍生效）→ 系统 DNS 直连 → DEGRADED → ERROR 全撤回；DNS 解析带 1.5s 硬超时 |
 | 日志/异常 | `diagnose.log`（2MB×3 轮转）→ 目录四级降级到纯内存；日志脱敏；`selftest_<ts>.json` 证据 |
 | 可选 hosts 模式 | 标记块 + 备份 + 原子写 + 精确回滚（需管理员权限，默认关闭） |
 

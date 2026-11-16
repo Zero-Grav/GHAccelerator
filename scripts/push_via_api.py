@@ -73,6 +73,9 @@ def main(argv=None) -> int:
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--sync-local", action="store_true",
                         help="提交成功后把本地分支与 origin/<branch> 指到新 commit")
+    parser.add_argument("--diff-base", default=None,
+                        help="本地已知基线 commit，用于计算差异；"
+                             "当远程 commit 由 API 创建、本地对象库不存在该对象时必填")
     args = parser.parse_args(argv)
 
     repo_url = "%s/repos/%s/%s" % (API, args.owner, args.repo)
@@ -80,15 +83,18 @@ def main(argv=None) -> int:
 
     ref = api(token, "GET", repo_url + "/git/ref/heads/" + args.branch)
     remote_sha = ref["object"]["sha"]
+    # 远程 commit 由 Git Data API / Contents API 创建时，本地对象库没有该对象；
+    # 此时用显式指定的共同祖先作为差异基线，parents 与 ref 更新仍用 remote_sha。
+    diff_base = args.diff_base or remote_sha
     try:
-        git("cat-file", "-e", remote_sha + "^{commit}")
+        git("cat-file", "-e", diff_base + "^{commit}")
     except subprocess.CalledProcessError:
-        print("远程 %s 的 commit 不在本地对象库，请先 git fetch", args.branch)
+        print("差异基线 %s 不在本地对象库；请传 --diff-base <本地已知 commit>" % diff_base[:7])
         return 2
 
     head = git("rev-parse", args.head).decode().strip()
-    changed = git("diff", "--name-only", remote_sha, head).decode().strip().splitlines()
-    deleted = git("diff", "--diff-filter=D", "--name-only", remote_sha, head) \
+    changed = git("diff", "--name-only", diff_base, head).decode().strip().splitlines()
+    deleted = git("diff", "--diff-filter=D", "--name-only", diff_base, head) \
         .decode().strip().splitlines()
     changed = [p for p in changed if p and p not in deleted]
     if not changed and not deleted:

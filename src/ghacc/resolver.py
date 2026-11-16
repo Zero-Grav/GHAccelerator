@@ -107,17 +107,21 @@ class Resolver(object):
         timeout_ms = int(self.cfg.settings.get("probe_timeout_ms", 1200))
         workers = int(self.cfg.settings.get("probe_workers", 12))
         verify = bool(self.cfg.settings.get("probe_tls_verify", True))
+        http_verify = bool(self.cfg.settings.get("probe_http_verify", True))
+        http_timeout_ms = int(self.cfg.settings.get("probe_http_timeout_ms", 4000))
 
         if not ips:
             _LOG.warning("候选池为空 host=%s pool=%s -> 回退直连", host, pool_name)
             return None
 
-        result = probe_pool(ips, host, port, timeout_ms, workers, verify)
+        result = probe_pool(ips, host, port, timeout_ms, workers, verify,
+                            http_verify, http_timeout_ms)
         ok = result["ok"]
-        source = "tls" if verify else "tcp"
+        source = "tls+http" if (verify and http_verify) else ("tls" if verify else "tcp")
         if not ok and verify:
-            _LOG.warning("TLS 校验探测全失败 host=%s -> 降级 TCP-only 重测", host)
-            result = probe_pool(ips, host, port, timeout_ms, workers, False)
+            _LOG.warning("证书校验探测全失败 host=%s -> 降级为不校验证书重测（应用层断言仍生效）", host)
+            result = probe_pool(ips, host, port, timeout_ms, workers, False,
+                                http_verify, http_timeout_ms)
             ok = result["ok"]
             source = "tcp-fallback"
 

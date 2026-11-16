@@ -11,7 +11,8 @@ from ghacc.resolver import Decision, Resolver
 def _loopback_config():
     return Config(
         settings=dict(Config.load().settings, **{
-            "probe_tls_verify": False, "probe_timeout_ms": 300,
+            "probe_tls_verify": False, "probe_http_verify": False,
+            "probe_timeout_ms": 300,
             "connect_timeout_s": 1.0, "cache_ttl_s": 60, "log_to_file": False,
         }),
         rules={"version": 1,

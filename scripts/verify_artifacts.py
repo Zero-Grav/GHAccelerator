@@ -38,7 +38,7 @@ SOURCE_REQUIRED = [
     ".github/workflows/selftest.yml", ".github/workflows/sign-release.yml",
     "docs/DESIGN.md", "docs/RELEASE.md",
     "tests/__init__.py", "tests/test_config.py", "tests/test_resolver.py",
-    "tests/test_proxy.py",
+    "tests/test_proxy.py", "tests/test_prober.py",
 ]
 
 FROZEN_REQUIRED = [

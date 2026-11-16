@@ -3,6 +3,18 @@
 > 本文是 v1.0.0 的**完整交付说明**：环境假设、平台矩阵、功能清单、验证数据与缺陷闭环 T1–T5。
 > 快速上手见 [根目录 README](../README.md)；二进制下载、哈希校验与代码签名见 [docs/RELEASE.md](RELEASE.md) 与 [GitHub Releases](https://github.com/Zero-Grav/GHAccelerator/releases)。
 
+### T6（v1.0.1，2026-11-16）：开启加速后 GitHub 显示异常页 / 半死节点
+
+| 项 | 内容 |
+|---|---|
+| 现象 | 现场开启加速后访问 GitHub 出现异常页（用户报告含 `Whoa there! You have sent an invalid request…` 文案）；23:10 的 `diagnose.log` 显示 `github.com → 140.82.113.10`，`rtt=548.7ms, source=tls`，代理计数 `accelerated=4 / failed=0` |
+| 根因 | ① 探测断言只到 TCP + TLS 握手，握手成功即判可用并立刻关连接；实测 `140.82.113.10` 的 `GET /` TLS 握手超时 9464ms、`GET /login` 读超时 9683ms，属「能握手不应答」的半死节点。② `refresh_from_meta()` 把官方 CIDR 按每 `/24` 取 `.1`/`.10` 机械展开成候选（用户池被撑到 32 个，含 Fastly/Pages 段 `185.199.108.1`），这些地址大多不是真实前端。③ 对照组：系统 DNS 直连 `200 / 682ms`，内置池 8 个中 7 个 `200`，说明当时加速反而更慢 |
+| 为什么开发机不复现 | 自检用 `127.0.0.1` 回环 echo，回环里不存在「能完成 TLS 握手却挂起 HTTP」的节点；污染池又只存在于用户目录 `~/.ghacc/config/rules.json` |
+| 修复（结构性） | `prober.py` 新增应用层断言 `check_http_response()`：真实 `GET /`、状态码 <500 且非 403/429、响应体无风控关键字、超时即淘汰；`probe_pool` 增加 `http_verify` / `http_timeout_ms` 参数与按轮次估算的整体超时；`ip_pool.py` 的 meta 只用于校验合法网段，候选改由真实 DNS 解析结果补充，刷新时**重建池**而非 merge（一次 `--refresh-ips` 即可自净污染池）；`CACHE_VER` 1→2 |
+| 验证 | selftest 新增 `R6_half_dead_ip_rejected` 表驱动反向断言（10 个用例：风控页/429/403/5xx/无状态行必须淘汰，200/301/404/415 不误杀）；`tests/test_prober.py` 6 个单测；自检 11/11、单测 28/28 通过 |
+| 因果闭环 | 修复后对现场同一份 32-IP 污染池重跑：`probe_one('140.82.113.10', ...)` 返回 `ok=False, tls_ok=True, http_ok=False, reason='http:risk-page:whoa there'` —— **该 IP 确实返回 GitHub `Whoa there` 风控页**，与用户报告的现象一致。32 个候选中 **25 个被新断言淘汰、7 个可用**，最终选中 `20.27.177.113`（`source=tls+http`），全池探测 3208ms，未选中半死节点 |
+| 边界 | 风控页由该优选 IP 的应用层响应返回，本机已复现；同一 IP 在不同时段也可能表现为握手超时（间歇性），两者都被同一断言淘汰。现场其他环节（其他代理、登录态、具体 URL）未参与本次复现，若用户现象出现在特定操作路径仍需截图确认 |
+
 ---
 
 > **结论先行**：这是一个**完整可运行的桌面项目**，用「GitHub 官方 IP 优选 + 本地 CONNECT 隧道」改善国内网络下 GitHub 域名的解析与连接质量。参考 Watt Toolkit / DevSidecar 的产品形态（一键启停、系统代理、域名白名单、优选测速、加速日志、网络自检），但**明确不采用它们的 TLS 中间人方案**：不生成/安装根证书、不解密 HTTPS、不注入脚本、不转发到第三方镜像。

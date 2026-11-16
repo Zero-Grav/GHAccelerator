@@ -32,6 +32,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "probe_timeout_ms": 1200,     # 单 IP 探测超时
     "probe_workers": 12,          # 并发探测线程数
     "probe_tls_verify": True,     # 探测时做 TLS 证书校验，排除被劫持 IP
+    "probe_http_verify": True,   # 探测时发真实 GET /，淘汰半死节点与风控页
+    "probe_http_timeout_ms": 4000,  # HTTP 应用层断言超时（需覆盖正常首页 RTT）
     "connect_timeout_s": 8.0,     # 代理连接上游超时
     "relay_timeout_s": 0.0,       # 双向转发空闲超时，0=不限
     "cache_ttl_s": 600,           # 优选结果缓存 TTL
@@ -201,6 +203,7 @@ class Config(object):
         if str(s.get("listen_host", "")).strip() not in ("127.0.0.1", "localhost", "::1"):
             problems.append("listen_host 仅允许回环地址（安全边界：不对局域网暴露）")
         for key, low, high in (("probe_timeout_ms", 100, 15000),
+                               ("probe_http_timeout_ms", 500, 30000),
                                ("probe_workers", 1, 64),
                                ("cache_ttl_s", 10, 86400),
                                ("refresh_interval_s", 0, 86400)):

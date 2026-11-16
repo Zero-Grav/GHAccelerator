@@ -199,6 +199,7 @@ class AppUI(object):
             ("mode", "工作模式", "combo", ["proxy", "hosts", "both"]),
             ("fallback", "优选失败策略", "combo", ["direct", "reject"]),
             ("probe_timeout_ms", "单 IP 探测超时 (ms)", "entry", "1200"),
+            ("probe_http_timeout_ms", "HTTP 断言超时 (ms)", "entry", "4000"),
             ("probe_workers", "并发探测数", "entry", "12"),
             ("connect_timeout_s", "连接上游超时 (s)", "entry", "8.0"),
             ("cache_ttl_s", "优选缓存 TTL (s)", "entry", "600"),
@@ -224,11 +225,15 @@ class AppUI(object):
         ttk.Checkbutton(tab, text="探测时校验 TLS 证书（强烈建议开启，排除被劫持 IP）",
                         variable=self.tls_verify).grid(row=len(rows) + 1, column=0,
                                                       columnspan=2, sticky=tk.W, pady=4)
+        self.http_verify = tk.BooleanVar(value=bool(s.get("probe_http_verify", True)))
+        ttk.Checkbutton(tab, text="探测时发真实 HTTP 请求（淘汰半死节点与风控页）",
+                        variable=self.http_verify).grid(row=len(rows) + 2, column=0,
+                                                       columnspan=2, sticky=tk.W, pady=4)
 
         ttk.Button(tab, text="保存设置", command=self._save_settings).grid(
-            row=len(rows) + 2, column=0, sticky=tk.W, pady=14)
+            row=len(rows) + 3, column=0, sticky=tk.W, pady=14)
         ttk.Label(tab, text="注意：端口/模式改动需「关闭加速 → 再开启」后生效",
-                  foreground="#57606a").grid(row=len(rows) + 2, column=1, sticky=tk.W)
+                  foreground="#57606a").grid(row=len(rows) + 3, column=1, sticky=tk.W)
 
     def _build_logs(self) -> None:
         tab = ttk.Frame(self.nb, padding=8)
@@ -465,7 +470,8 @@ class AppUI(object):
         try:
             for key, (var, kind, extra) in self.set_vars.items():
                 value = var.get()
-                if key in ("listen_port", "probe_timeout_ms", "probe_workers"):
+                if key in ("listen_port", "probe_timeout_ms", "probe_http_timeout_ms",
+                           "probe_workers"):
                     self.acc.cfg.set_setting(key, int(value))
                 elif key in ("connect_timeout_s", "cache_ttl_s", "refresh_interval_s"):
                     self.acc.cfg.set_setting(key, float(value))
@@ -473,6 +479,7 @@ class AppUI(object):
                     self.acc.cfg.set_setting(key, value)
             self.acc.cfg.set_setting("set_system_proxy", bool(self.auto_sysproxy.get()))
             self.acc.cfg.set_setting("probe_tls_verify", bool(self.tls_verify.get()))
+            self.acc.cfg.set_setting("probe_http_verify", bool(self.http_verify.get()))
             problems = self.acc.cfg.validate()
             if problems:
                 raise ValueError("；".join(problems[:5]))

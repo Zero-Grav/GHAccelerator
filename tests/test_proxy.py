@@ -87,7 +87,8 @@ class TestProxy(unittest.TestCase):
         self.cfg = Config(
             settings=dict(Config.load().settings, **{
                 "listen_host": "127.0.0.1", "listen_port": self.port,
-                "probe_tls_verify": False, "probe_timeout_ms": 300,
+                "probe_tls_verify": False, "probe_http_verify": False,
+                "probe_timeout_ms": 300,
                 "connect_timeout_s": 1.0, "log_to_file": False,
                 "set_system_proxy": False, "mode": "proxy",
             }),
